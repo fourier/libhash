@@ -4,28 +4,32 @@
 typedef struct hash_bucket hash_bucket;
 struct hash_bucket
 {
-  int key;
+  long key;
   double value;
   hash_bucket* next;
 };
 
-typedef struct hash_table_tag
-{
-  int size;
-  int occupied_size;
-  hash_bucket** table;
-} hash_table;
+typedef struct hash_table hash_table;
+typedef long (*hash_function_t) (hash_table* table,long key);
 
-hash_table* hash_table_alloc(int hash_size);
+struct hash_table
+{
+  long size;
+  long occupied_size;
+  hash_bucket** table;
+  hash_function_t hash;
+};
+
+hash_table* hash_table_alloc(long hash_size);
 hash_table* hash_table_free(hash_table* table);
 
 
-hash_bucket* hash_table_find(hash_table* table, int key);
-void hash_table_insert(hash_table* table, int key,double value);
-
+hash_bucket* hash_table_find(hash_table* table, long key);
+void hash_table_insert(hash_table* table, long key,double value);
+void hash_table_remove(hash_table* table, long key);
 void hash_table_print(hash_table* table);
 
-hash_bucket* hash_bucket_alloc(int key, double value, hash_bucket* next);
+hash_bucket* hash_bucket_alloc(long key, double value, hash_bucket* next);
 hash_bucket* hash_bucket_free(hash_bucket* bucket);
 
 

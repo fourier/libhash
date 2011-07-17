@@ -1,0 +1,12 @@
+Libhash
+Copyright (C) 2011 Alexey Veretennikov (alexey dot veretennikov at gmail dot com)
+
+Description
+-----------
+Libhash is a Library providing access to easy-to-use hash table implementation.
+It is not fast enough, since it is a toy project(not a production one).
+Currently it provides the following set of the hashing functions:
+ - division hash
+ - multiplication hash
+ - hash function for string(K&P The Art of Programming)
+ - open address hashing
