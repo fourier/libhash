@@ -14,6 +14,8 @@ const int MULTIPLIER = 31;      /* other can be 37 */
 /* Constant for multiplication hash function */
 const double A = 0.6180339887498949;
 
+/* Constant marking deleted entry in the table with open adressing */
+hash_bucket* DELETED = (hash_bucket*)(-1);
 
 /*
  * Hash functions
@@ -51,11 +53,41 @@ long hash_function_mul(hash_table* table,long key)
   return h;
 }
 
-/*
- * Other hash-table related functions 
- */
+static
+long hash_function_open_address(hash_table* table,long key,long i)
+{
+  long result;
+  /*
+   * Constants for quadratic probing.
+   * From http://en.wikipedia.org/wiki/Quadratic_probing could be
+   * c1 = c2 = 1/2, c1 = c2 = 1, and c1 = 0,c2 = 1
+   */
+  double c1 = 0.5,c2 = 0.5;
+  switch(table->type)
+  {
+  case ELINEARPROBING:
+    result = (table->hash(table,key) + i) % table->size;
+    break;
+  case EQUADRATICPROBING:
+    result = (table->hash(table,key) + (int)(c1*i) + (int)(c2*i*i))
+      % table->size;
+    break;
+  case EDOUBLEHASHING:
+    break;
+  case ECHAINEDHASH:
+  default:
+    assert(0);
+    break;
+  }
+  return result;
+}
 
-hash_table* hash_table_alloc(long hash_size)
+/*
+ * hash-table related functions 
+ */
+hash_table* ht_alloc_with_type_and_func(long hash_size,
+                                        CollisionResolutionType type,
+                                        HashFunctionType func)
 {
   int i;
   hash_table* table = calloc(1,sizeof(hash_table));
@@ -71,11 +103,38 @@ hash_table* hash_table_alloc(long hash_size)
     table->size = hash_size;
 
   table->table = calloc(table->size,sizeof(hash_table*));
-  table->hash = hash_function_mul;
+  table->type = type;
+  switch (func)
+  {
+  case EMULTIPLICATIVE:
+    table->hash = hash_function_mul;
+    break;
+  case EDIVISION:
+    table->hash = hash_function_div;
+    break;
+  default:
+    assert(0);
+    break;
+  }
   return table;
 }
 
-hash_table* hash_table_free(hash_table* table)
+hash_table* ht_alloc_with_func(long hash_size,HashFunctionType func)
+{
+  return ht_alloc_with_type_and_func(hash_size,ECHAINEDHASH,func);
+}
+
+hash_table* ht_alloc_with_type(long hash_size,CollisionResolutionType type)
+{
+  return ht_alloc_with_type_and_func(hash_size,type,EDIVISION);
+}
+
+hash_table* ht_alloc(long hash_size)
+{
+  return ht_alloc_with_type_and_func(hash_size,ECHAINEDHASH,EDIVISION);
+}
+
+hash_table* ht_free(hash_table* table)
 {
   long i;
   hash_bucket* bucket, *next;
@@ -83,7 +142,7 @@ hash_table* hash_table_free(hash_table* table)
   for ( i = 0; i < table->size; ++ i)
   {
     bucket = table->table[i];
-    while(bucket)
+    while(bucket && bucket != DELETED)
     {
       next = bucket->next;
       hash_bucket_free(bucket);
@@ -95,69 +154,147 @@ hash_table* hash_table_free(hash_table* table)
   return (hash_table*)0;
 }
 
-
-hash_bucket* hash_table_find(hash_table* table, long key)
+static
+long ht_find_open_addressing(hash_table* table, long key)
 {
   hash_bucket* result = (hash_bucket*)0;
-  long position = table->hash(table,key);
-  result = table->table[position];
-  while ( result && result->key != key)
-    result = result->next;
+  long i = 0, j = 0;
+  assert(table->type != ECHAINEDHASH);
+  do
+  {
+    j = hash_function_open_address(table,key,i);
+    result = table->table[j];
+    if ( result == DELETED)
+    {
+      result = (hash_bucket*)0;
+      break;
+    }
+    if ( result && result->key == key)
+      break;
+    i++;
+  } while ( table->table[j] && i < table->size);
+  return result ? j : -1;
+}
+
+hash_bucket* ht_find(hash_table* table, long key)
+{
+  hash_bucket* result = (hash_bucket*)0;
+  long i = 0, j = 0;
+  if ( table->type == ECHAINEDHASH)
+  {
+    i = table->hash(table,key);
+    result = table->table[i];
+    while ( result && result->key != key)
+      result = result->next;
+  }
+  else                          /* open address hash */
+  {
+    j = ht_find_open_addressing(table,key);
+    if ( j != -1 )
+      result = table->table[j];
+  }
   return result;
 }
 
-void hash_table_insert(hash_table* table, long key,double value)
+
+void ht_insert(hash_table* table, long key,double value)
 {
-  long position = table->hash(table,key);
-  hash_bucket* bucket = table->table[position];
-  table->table[position] = hash_bucket_alloc(key,value,bucket);
-  table->occupied_size++;
+  long i = 0, j = 0;
+  hash_bucket* bucket = (hash_bucket*)0;
+  printf("attempt to insert: %ld\n",key);
+  if (table->type == ECHAINEDHASH)
+  {
+    i = table->hash(table,key);
+    bucket = table->table[i];
+    table->table[i] = hash_bucket_alloc(key,value,bucket);
+    table->occupied_size++;
+  }
+  else                          /* open adressing hash */
+  {
+    while ( i < table->size )
+    {
+      j = hash_function_open_address(table,key,i);
+      if ( !table->table[j] || table->table[j] == DELETED)
+      {
+        table->table[j] = hash_bucket_alloc(key,value,bucket);
+        table->occupied_size++;
+        return;
+      }
+      i++;
+    }
+    fprintf(stderr,"Hash table overflow! ");
+    fprintf(stderr,"size = %ld, occupied = %ld\n",
+            table->size,table->occupied_size);
+  }
 }
 
-void hash_table_remove(hash_table* table, long key)
+void ht_remove(hash_table* table, long key)
 {
   hash_bucket* bucket = (hash_bucket*)0;
   hash_bucket* prev = (hash_bucket*)0;
-  long position = table->hash(table,key);
-  bucket = table->table[position];
-  while ( bucket && bucket->key != key)
+  long position;
+  printf("attempt to remove: %ld\n",key);
+  if (table->type == ECHAINEDHASH)
   {
-    prev = bucket;
-    bucket = bucket->next;
-  }
-  if (bucket)                   /* found bucket to delete */
-  {
-    if ( prev)
-      prev->next = bucket->next;
-    else
+    position = table->hash(table,key);
+    bucket = table->table[position];
+    while ( bucket && bucket->key != key)
     {
-      prev = table->table[position]->next;
-      table->table[position] = prev;
+      prev = bucket;
+      bucket = bucket->next;
     }
-    hash_bucket_free(bucket);
+    if (bucket)                   /* found bucket to delete */
+    {
+      if ( prev)
+        prev->next = bucket->next;
+      else
+      {
+        prev = table->table[position]->next;
+        table->table[position] = prev;
+      }
+      hash_bucket_free(bucket);
+      table->occupied_size--;
+    }
+  }
+  else                          /* open addressing hash */
+  {
+    position = ht_find_open_addressing(table,key);
+    if ( position != -1 )
+    {
+      hash_bucket_free(table->table[position]);
+      table->table[position] = DELETED;
+      table->occupied_size--;
+    }
   }
 }
 
-void hash_table_print(hash_table* table)
+void ht_print(hash_table* table)
 {
   long i;
   hash_bucket* bucket;
   long no_collisions = 0;
   
   for ( i = 0; i < table->size; ++ i)
-    if (table->table[i])
+  {
+    bucket = table->table[i];
+    if (bucket)
     {
       printf("%ld: ", i);
-      bucket = table->table[i];
-      while (bucket)
+      if (bucket != DELETED)
       {
-        printf("%ld ", bucket->key);
-        bucket = bucket->next;
-        if (bucket) no_collisions++;
+        while (bucket)
+        {
+          printf("%ld ", bucket->key);
+          bucket = bucket->next;
+          if (bucket) no_collisions++;
               
+        }
       }
+      else
+        printf("DELETED");
       printf("\n");
     }
+  }
   printf("hash table size = %ld, occupied = %ld\n",
          table->size,table->occupied_size);
   printf("alpha = %f\n",table->occupied_size/(double)table->size);
