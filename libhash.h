@@ -2,7 +2,7 @@
 /*
  Copyright (C) 2011 Alexey Veretennikov (alexey dot veretennikov at gmail.com)
  
-	This file is part of libhash.
+ This file is part of libhash.
 
  libhash is free software: you can redistribute it and/or modify
  it under the terms of the GNU Lesser General Public License as published
