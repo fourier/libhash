@@ -44,7 +44,7 @@ static void test1()
   hash = ht_free(hash);
 }
 
-int main(int argc, char *argv[])
+int main()
 {
   test1();
   return 0;

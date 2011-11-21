@@ -22,7 +22,7 @@ CC = gcc
 
 CFLAGS = -ggdb -pg -ansi -pedantic -Wall -Wextra -Wmissing-include-dirs -Wswitch-default -Wswitch-enum -Wdeclaration-after-statement -Wmissing-declarations 
 INCLUDES = -I .
-LINKFLAGS = -L. -lhash 
+LINKFLAGS = -L. -lhash -lm
 
 OUTPUT_SRC = main.c
 SOURCES := $(wildcard *.c)
