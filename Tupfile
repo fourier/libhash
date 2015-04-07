@@ -28,14 +28,16 @@ OUTPUT_LIB = libhash.a
 LIBRARY_SRCS = libhash.c primes.c
 TEST_SRCS = main.c
 
+!cc = |> $(CC) $(CFLAGS) $(INCLUDES) -c %f -o %o |> %B.o
+
 # library objects
-: foreach $(LIBRARY_SRCS) |> $(CC) -c $(CFLAGS) $(INCLUDES) %f -o %o |> %B.o {LIB_OBJS}
+: foreach $(LIBRARY_SRCS) |> !cc |> {LIB_OBJS}
 
 # library binary
-: {LIB_OBJS} |> $(AR) cr %o %f |> $(OUTPUT_LIB)
+: {LIB_OBJS} |> $(AR) cr %o %f ; ranlib %o |> $(OUTPUT_LIB)
 
 # test object
-: main.c |> gcc -c $(CFLAGS) $(INCLUDES) %f -o %o |> %B.o {TEST_OBJ}
+: main.c |> !cc |> {TEST_OBJ}
 
 # test binary
 : {TEST_OBJ} | $(OUTPUT_LIB) |> $(CC) %f -o %o $(LINKFLAGS) |> $(OUTPUT)
