@@ -18,7 +18,9 @@
 # along with libhash.  If not, see <http://www.gnu.org/licenses/>.
 
 
-CC = gcc
+ifeq ($(CC),cc)
+	override CC = gcc
+endif
 
 CFLAGS = -ggdb -pg -ansi -pedantic -Wall -Wextra -Wmissing-include-dirs -Wswitch-default -Wswitch-enum -Wdeclaration-after-statement -Wmissing-declarations 
 INCLUDES = -I .
