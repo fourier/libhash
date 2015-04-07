@@ -19,7 +19,11 @@
 
 CC = gcc 
 AR = ar
-CFLAGS = -ggdb -pg -ansi -pedantic -Wall -Wextra -Wmissing-include-dirs -Wswitch-default -Wswitch-enum -Wdeclaration-after-statement -Wmissing-declarations 
+ifeq (RELEASE,0)
+  CFLAGS = -ggdb -pg -ansi -pedantic -Wall -Wextra -Wmissing-include-dirs -Wswitch-default -Wswitch-enum -Wdeclaration-after-statement -Wmissing-declarations
+else
+  CFLAGS = -O3 -ansi -pedantic -Wall -Wextra -Wmissing-include-dirs -Wswitch-default -Wswitch-enum -Wdeclaration-after-statement -Wmissing-declarations
+endif
 INCLUDES = -I .
 LINKFLAGS = -L. -lhash -lm
 OUTPUT = hashtest
