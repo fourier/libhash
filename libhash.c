@@ -76,7 +76,7 @@ long hash_function_mul(hash_table* table,long key)
 static
 long hash_function_open_address(hash_table* table,long key,long i)
 {
-  long result;
+  long result = 0;
   /*
    * Constants for quadratic probing.
    * From http://en.wikipedia.org/wiki/Quadratic_probing could be
