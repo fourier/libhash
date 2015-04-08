@@ -19,7 +19,7 @@
 
 CC = gcc 
 AR = ar
-ifeq (RELEASE,0)
+ifeq (@(RELEASE),0)
   CFLAGS = -ggdb -pg -ansi -pedantic -Wall -Wextra -Wmissing-include-dirs -Wswitch-default -Wswitch-enum -Wdeclaration-after-statement -Wmissing-declarations
 else
   CFLAGS = -O3 -ansi -pedantic -Wall -Wextra -Wmissing-include-dirs -Wswitch-default -Wswitch-enum -Wdeclaration-after-statement -Wmissing-declarations
