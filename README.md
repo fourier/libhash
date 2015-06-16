@@ -1,4 +1,7 @@
-Libhash
+[![Build Status](https://travis-ci.org/fourier/libhash.svg?branch=master)](https://travis-ci.org/fourier/libhash)
+
+libhash
+=======
 Copyright (C) 2011 Alexey Veretennikov (alexey dot veretennikov at gmail dot com)
 
 Description
